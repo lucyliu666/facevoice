@@ -17,8 +17,9 @@ Expe.colscreen=[0 0 0];
 Expe.ElSampRate=250;%the eyelink desired samprate (250 or 500)
 Expe.FixationPoint=[Expe.DispSize(3)/2 80];
 Expe.Date=datestr(now);
-Expe.ImPath='C:\copy\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Stimuli\Images\';
-Expe.SdPath='C:\copy\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Stimuli\Sounds\';
+Expe.ImPath='E:\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Stimuli\Images\';
+Expe.SdPath='E:\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Stimuli\Sounds\';
+Expe.NorSdPath='E:\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Normalizedsound\';
 Expe.NumPres=6;%number of presentation
 Expe.PresDur=10;%duration of stimulus either for presentation or for looking time
 Expe.wRect = get(0,'screensize');
@@ -56,38 +57,43 @@ Expe.ImOrder=randperm(length(ListIm)); % randomize the order of the images prese
 for i = 1 : length(ListIm)
     Stim(i).Image=imread(strcat(Expe.ImPath,char(ListIm{Expe.ImOrder(i)})));
 end
+% imshow(Stim(i).Image);
 %define its positioning (centered)
-Expe.AOI=[266 57 758 710];
+% Expe.AOI=[266 57 758 710];
 %define the corresponding AOI on a mask
-AOI=zeros(Expe.wRect(4),Expe.wRect(3));
-AOI(Expe.AOI(1,2):Expe.AOI(1,4),Expe.AOI(1,1):Expe.AOI(1,3))=1;
+% AOI=zeros(Expe.wRect(4),Expe.wRect(3));
+% AOI(Expe.AOI(1,2):Expe.AOI(1,4),Expe.AOI(1,1):Expe.AOI(1,3))=1;
 
-%% load the sound
-Expe.SdOrder=randperm(length(ListSd)); % randomize the sequence of the images presented
+%% load the sound and normalize
+Expe.SdOrder=randperm(length(ListSd)); % randomize the order of the audio played
 for j = 1 : length(ListSd)
-    [Y,FS,NBITS]=wavread(strcat(Expe.SdPath,char(ListSd{Expe.SdOrder(j)})));
-    Stim(j).Sound= Y;% should between -1 and 1
+    [Y,FS]=audioread(strcat(Expe.SdPath,char(ListSd{Expe.SdOrder(j)}))); % what does Y mean exactly?
+    Ym=max(max(max(Y)),max(abs(min(Y))));% find the maximum value of Y
+    X=Y/Ym; % normalized the sample data (volume)
+    Stim(j).Sound= X;
     Stim(j).Freq= FS;
-    Stim(j).playerobj=audioplayer(Y,FS)
+    audiowrite(strcat(Expe.NorSdPath,char(ListSd{Expe.SdOrder(j)})),X,FS); % convert variables to WAV files and save in a new folder
+    Stim(j).playerobj=audioplayer(X,FS)
 end
 
 
-%gong = audioplayer(Stim(i).Sound,Stim(i).Freq);
+% gong = audioplayer(Stim(i).Sound,Stim(i).Freq);
 play(Stim(j).playerobj);
 
 % draw the audio file
-timeArray = (0:size(Y,1)-1) / FS; 
-plot(timeArray,Y) % what does the Y axis mean?
-
-%sound(Stim(i).Sound,Stim(i).Freq)
-
-% commandwindow
-% pause(1)
-% for i = 1:100000
-%     fprintf('%c\n',i)
-% end
+timeArray = (0:size(X,1)-1)/FS;
+plot(timeArray, X)
 
 return
+%sound(Stim(i).Sound,Stim(i).Freq)
+
+commandwindow
+pause(1)
+% for n = 1:100000
+%     fprintf('%d\n',n)
+% end
+% 
+% return
 %define its positioning (centered)
 %Expe.AOI=[266 57 758 710];
 %define the corresponding AOI on a mask
