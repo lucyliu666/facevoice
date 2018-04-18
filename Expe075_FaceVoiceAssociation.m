@@ -1,5 +1,5 @@
 %clear all window variables and figures
-%clc;clear all;close all
+clc;clear all;close all
 
 %Initialize random number generator
 rand('state',GetSecs);
@@ -10,7 +10,7 @@ Expe.Code=75;%The experiment number
 Expe.Name='FaceVoiceAssociation';
 Expe.Description={'a french face is paired with French or Chinese'};
 Expe.StimFolderName='Expe075_FaceVoiceAssociation\Stimuli\'
-Expe.FolderName='Expe075_FaceVoiceAssociation'; 
+Expe.FolderName='Expe075_FaceVoiceAssociation';
 Expe.MainPath=cd;%
 Expe.DispSize=get(0,'screensize');
 Expe.colscreen=[0 0 0];
@@ -19,7 +19,7 @@ Expe.FixationPoint=[Expe.DispSize(3)/2 80];
 Expe.Date=datestr(now);
 Expe.ImPath='E:\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Stimuli\Images\';
 Expe.SdPath='E:\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Stimuli\Sounds\';
-Expe.NorSdPath='E:\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Normalizedsound\';
+Expe.AnimPath='E:\Phd\FaceVoiceAss\Expe075_FaceVoiceAssociation\Stimuli\Anims\';
 Expe.NumPres=6;%number of presentation
 Expe.PresDur=10;%duration of stimulus either for presentation or for looking time
 Expe.wRect = get(0,'screensize');
@@ -38,18 +38,23 @@ end
 ListIm={ListIm.name}';
 
 %% GetSoundList depending on speaker
-Expe.Speaknum=input('Choose the speaker(1 2 3 4): ','s'); 
+Expe.Speaknum=input('Choose the speaker(1 2 3 4): ','s');
 
 if Expe.Speaknum=='1'
     ListSd=dir(strcat(Expe.SdPath,'01*.wav'));
 elseif Expe.Speaknum=='2'
     ListSd=dir(strcat(Expe.SdPath,'02*.wav'));
 elseif Expe.Speaknum=='3'
-    ListSd=dir(strcat(Expe.SdPath,'03*.wav'));    
-else 
-    ListSd=dir(strcat(Expe.SdPath,'04*.wav')); 
+    ListSd=dir(strcat(Expe.SdPath,'03*.wav'));
+else
+    ListSd=dir(strcat(Expe.SdPath,'04*.wav'));
 end
 ListSd={ListSd.name}';
+
+%% GetAnimList
+ListAnim=dir(strcat(Expe.AnimPath,'movie*.avi'));
+ListAnim={ListAnim.name}';
+Expe.AnimOrder=randperm(length(ListAnim));
 
 %% load the image
 Stim=[];% what does it mean
@@ -66,34 +71,45 @@ end
 
 %% load the sound and normalize
 Expe.SdOrder=randperm(length(ListSd)); % randomize the order of the audio played
-for j = 1 : length(ListSd)
+for j = 1: length(ListSd)
     [Y,FS]=audioread(strcat(Expe.SdPath,char(ListSd{Expe.SdOrder(j)}))); % what does Y mean exactly?
-    Ym=max(max(max(Y)),max(abs(min(Y))));% find the maximum value of Y
-    X=Y/Ym; % normalized the sample data (volume)
-    Stim(j).Sound= X;
+    %G(j,str2num(Expe.Speaknum))=std(Y);
+    Ym=std(Y);
+    Ym=0.15./Ym;
+    X=Y.*Ym; % normalized the sample data (volume)
+    X(X>1)=1;X(X<-1)=-1;
+    Y=X;
+    Stim(j).Sound= Y;
     Stim(j).Freq= FS;
-    audiowrite(strcat(Expe.NorSdPath,char(ListSd{Expe.SdOrder(j)})),X,FS); % convert variables to WAV files and save in a new folder
-    Stim(j).playerobj=audioplayer(X,FS)
+    %audiowrite(strcat(Expe.NorSdPath,char(ListSd{Expe.SdOrder(j)})),Y,FS); % convert variables to WAV files and save in a new folder
+    Stim(j).playerobj=audioplayer(Y,FS)
 end
 
-
 % gong = audioplayer(Stim(i).Sound,Stim(i).Freq);
-play(Stim(j).playerobj);
+% for j=1: length(ListSd)
+% play(Stim(j).playerobj, [1,Stim(j).Freq*Expe.PresDur]);
+% pause(1.5)
+% end
+% return
 
-% draw the audio file
-timeArray = (0:size(X,1)-1)/FS;
-plot(timeArray, X)
-
-return
+% % % draw the audio file
+% timeArray = (0:size(X,1)-1)/FS;
+% plot(timeArray, X)
+% figure;plot(X)
+% hold on;plot(X([1:110000 117489:end]),'r-')
+% X=X([1:110000 117489:end]);
+%
+% return
 %sound(Stim(i).Sound,Stim(i).Freq)
 
-commandwindow
-pause(1)
+% commandwindow
+% pause(1)
 % for n = 1:100000
 %     fprintf('%d\n',n)
 % end
-% 
-% return
+%
+%
+
 %define its positioning (centered)
 %Expe.AOI=[266 57 758 710];
 %define the corresponding AOI on a mask
@@ -107,6 +123,7 @@ AnimPath='Animations';%The name of the folder where are situated the animations
 %HERE WE MUST GIVE THE NAME OF NON SOUND TARGET
 AnimList={'Anim64_1.avi' 'Anim64_2.avi' 'Anim64_3.avi' 'Anim64_4.avi' 'Anim64_5.avi' 'Anim64_6.avi' 'Anim64_7.avi'...
     'Anim64_8.avi' 'Anim64_9.avi' 'Anim64_10.avi' 'Anim64_11.avi' 'Anim64_12.avi'};
+
 
 %% Enable unified mode of KbName:
 KbName('UnifyKeyNames');
@@ -155,9 +172,9 @@ ifi=1/Expe.FrameRate;
 vbl  = Screen('Flip', winptr);
 
 while 1
-
+    
     switch(State)
-
+        
         case 'AttGetter'
             %show a fixation target on center
             AnimIndex=floor(rand(1)*size(AnimList,2)+1);
@@ -174,25 +191,50 @@ while 1
             State = 'Display';
             FPass=1;
             TrialTime=GetSecs;
-        
+            
         case 'Display'
-
+            
             %set or update variables in the program
             if FPass==1;
-                NameMessageStart=strcat('start_',num2str(trial,'%03d'));
+                NameMessageStart=strcat('start_image',num2str(trial,'%03d'));
                 Eyelink('Message', NameMessageStart);
-                tex1=Screen('MakeTexture', winptr, Im);
+                tex1=Screen('MakeTexture', winptr, Stim(trial).Image);
                 %tex2=Screen('MakeTexture', winptr, ImageStore(ListIm(trial,2)).Im);
                 Screen('DrawTexture', winptr, tex1, [0 0 size(Im,2) size(Im,1)], [Expe.AOI(1,:)])
                 %Screen('DrawTexture', winptr, tex2, [0 0 ImageStore(ListIm(trial,2)).Sz(2) ImageStore(ListIm(trial,2)).Sz(1)], [xy2])
                 vbl  = Screen('Flip', winptr);%, vbl + (0.5 * ifi));%show it
                 FPass=0;
                 CurrTime=GetSecs;
-                TrialTime=GetSecs;
+                TrialTime=CurrTime;
             else
             end
-    end
+            
+        case 'Sound'
+            
+            %set or update variables in the program
+            if FPass==1;
+                NameMessageStart=strcat('start_sound',num2str(trial,'%03d'));
+                Eyelink('Message', NameMessageStart);
+                %tex1=Screen('MakeTexture', winptr, Stim(trial).Image);
+                %tex2=Screen('MakeTexture', winptr, ImageStore(ListIm(trial,2)).Im);
+                %Screen('DrawTexture', winptr, tex1, [0 0 size(Im,2) size(Im,1)], [Expe.AOI(1,:)])
+                %Screen('DrawTexture', winptr, tex2, [0 0 ImageStore(ListIm(trial,2)).Sz(2) ImageStore(ListIm(trial,2)).Sz(1)], [xy2])
+                %vbl  = Screen('Flip', winptr);%, vbl + (0.5 * ifi));%show it
+                
+                %ShowMovie()
+                
+                FPass=0;
 
+                play(Stim(trial).playerobj, [1,Stim(trial).Freq*Expe.PresDur]);
+                CurrTime=GetSecs;
+                TrialTime=CurrTime;
+            else
+            end
+            
+            
+            
+    end
+    
     % Check the state of the keyboard.
     [keyIsDown, seconds, keyCode] = KbCheck;
     % If the user is pressing a key, then display its code number and name.
@@ -200,21 +242,21 @@ while 1
         kC=find(keyCode);
         kC=kC(1);
         fprintf('You pressed key %i which is %s\n', kC, KbName(kC));
-
+        
         if kC==escapeKey
             vbl=Screen('Flip', winptr);
-
+            
             NameMessage=strcat('ended_',num2str(trial,'%0.3d'));
             if ~isempty(el)
                 Eyelink('Message', NameMessage);
             end
             Tdur(trial,1)=GetSecs-TrialTime;
-        %trial=trial+1;
-        Screen('Close',[tex1]);
+            %trial=trial+1;
+            Screen('Close',[tex1]);
             sca;break;%return;%break;
             
         end
-
+        
         if kC==moveKey
             NameMessage=strcat('ended_',num2str(trial,'%0.3d'));
             if ~isempty(el)
@@ -225,13 +267,13 @@ while 1
             State='AttGetter';
             Screen('Close',[tex1]);
         end
-
+        
         % If the user holds down a key, KbCheck will report multiple events.
         % To condense multiple 'keyDown' events into a single event, we wait until all
         % keys have been released.
         while KbCheck; end
     end
-
+    
     switch State
         case 'Display'
             if ~isempty(el) & FPass==0
@@ -251,7 +293,7 @@ while 1
                             y=0;
                         end
                     end
-
+                    
                     if x<=0 | y<=0 | x>=Expe.wRect(3) | y>=Expe.wRect(4);
                         CurrTime=GetSecs;
                     else
@@ -265,19 +307,31 @@ while 1
             else% if eyelink is not present don't count
             end
     end
-
-    %if GetSecs-TrialTime>Expe.PresDur;%presentation time
-    if sum(Results(trial,2:3))>Expe.PresDur;%looking time
-        State='AttGetter';
-        vbl=Screen('Flip', winptr);
-        NameMessage=strcat('ended_',num2str(trial,'%0.3d'));
+    
+    if GetSecs-TrialTime>Expe.PresDur & strcmp(State,'Display')==1;%presentation time
+        %     if sum(Results(trial,2:3))>Expe.PresDur;%looking time
+        State='Sound';
+        FPass=1;
+        %         vbl=Screen('Flip', winptr);
+        %         NameMessage=strcat('ended_',num2str(trial,'%0.3d'));
+        %         if ~isempty(el)
+        %             Eyelink('Message', NameMessage);
+        %         end
+        %         Tdur(trial,1)=GetSecs-TrialTime
+        %         trial=trial+1;
+        Screen('Close',[tex1])
+    elseif GetSecs-TrialTime>Expe.PresDur & strcmp(State,'Sound')==1;%presentation time
+        NameMessage=strcat('end_Sound',num2str(trial,'%0.3d'));
         if ~isempty(el)
             Eyelink('Message', NameMessage);
         end
-        Tdur(trial,1)=GetSecs-TrialTime
+        State='Display';
         trial=trial+1;
-        Screen('Close',[tex1])
+        FPass=1;
     end
+    
+    
+    
     %check termination of expe based on trial
     if trial>Expe.NumPres;
         %Screen('Close',[tex1])
@@ -314,11 +368,11 @@ end
 %save the results
 save(Expe.OutFileName,'Expe','Subject','Results');%,'Result');
 %clear unecessary variables to avoid carryover effect on next expe
- clear AOI AnimIndex AnimList AnimPath Bool Border CurrTime Expe FileName FilePath ...
-     Im Im1 ImWidth ImageStore Lim ListIm NameMessage NameMessageStart NearCent NearEdge ...
-     Results Tdur TrialTime VBEdge VTEdge ans escapeKey evt eye_used i islook moveKey ...
-     sim status surface tex1 tex2 trialKey winptr xy1 xy2...
-     FPass State ifi kC keyCode keyIsDown seconds trial vbl x y;
+clear AOI AnimIndex AnimList AnimPath Bool Border CurrTime Expe FileName FilePath ...
+    Im Im1 ImWidth ImageStore Lim ListIm NameMessage NameMessageStart NearCent NearEdge ...
+    Results Tdur TrialTime VBEdge VTEdge ans escapeKey evt eye_used i islook moveKey ...
+    sim status surface tex1 tex2 trialKey winptr xy1 xy2...
+    FPass State ifi kC keyCode keyIsDown seconds trial vbl x y;
 %Subject=rmfield(Subject,'Expe')
 
 
